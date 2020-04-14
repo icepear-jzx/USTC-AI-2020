@@ -2,20 +2,22 @@
 #include <cstring>
 #include <cassert>
 #include <vector>
-#include <set>
-#include <tuple>
+#include <unordered_set>
  
 using namespace std;
 
 enum direction {UP, RIGHT, DOWN, LEFT};
 
+unordered_set<string> visited_states;
+
 class Node {
     public:
         int state[5][5];
+        string state_str = "";
         int pos_i_0s[2] = {-1, -1};
         int pos_j_0s[2] = {-1, -1};
         Node* parent;
-        vector<Node> children;
+        vector<Node*> children;
         vector<int> moves_i;
         vector<int> moves_j;
         vector<direction> moves_d;
@@ -24,6 +26,8 @@ class Node {
             for (int i=0; i < 5; i++) {
                 for (int j=0; j < 5; j++) {
                     state[i][j] = cur_state[i][j];
+                    state_str += to_string(state[i][j]);
+                    state_str += ' ';
                     if (state[i][j] == 0) {
                         if (pos_i_0s[0] == -1) {
                             pos_i_0s[0] = i;
@@ -59,7 +63,7 @@ class Node {
             for (int k=0; k < n; k++) {
                 for (int i = 0; i < 5; ++i) {
                     for (int j = 0; j < 5; j++) {
-                        cout << children[k].state[i][j] << '\t';
+                        cout << children[k]->state[i][j] << '\t';
                     }
                     cout << endl;
                 }
@@ -101,15 +105,21 @@ class Node {
         }
 
         void setup_children() {
+            visited_states.insert("saddfsasfds");
             int n = moves_i.size();
             for (int i=0; i < n; i++) {
                 int pos_i = moves_i[i];
                 int pos_j = moves_j[i];
                 direction direct = moves_d[i];
-                Node new_node(state);
-                new_node.move(pos_i, pos_j, direct);
-                new_node.parent = this;
-                children.push_back(new_node);
+                Node* new_node = new Node(state);
+                new_node->move(pos_i, pos_j, direct);
+                new_node->parent = this;
+                if (visited_states.find(new_node->state_str) != visited_states.end()){
+                    delete new_node;
+                } else {
+                    children.push_back(new_node);
+                    visited_states.insert(new_node->state_str);
+                }
             }
         }
 
@@ -180,6 +190,7 @@ class Node {
                     }
                 }
             }
+            update();
         }
 
     private:
@@ -299,6 +310,29 @@ class Node {
             moves_j.push_back(pos_j);
             moves_d.push_back(direct);
         }
+
+        void update() {
+            state_str = "";
+            pos_i_0s[0] = -1;
+            pos_i_0s[1] = -1;
+            pos_j_0s[0] = -1;
+            pos_j_0s[1] = -1;
+            for (int i=0; i < 5; i++) {
+                for (int j=0; j < 5; j++) {
+                    state_str += to_string(state[i][j]);
+                    state_str += ' ';
+                    if (state[i][j] == 0) {
+                        if (pos_i_0s[0] == -1) {
+                            pos_i_0s[0] = i;
+                            pos_j_0s[0] = j;
+                        } else {
+                            pos_i_0s[1] = i;
+                            pos_j_0s[1] = j;
+                        }
+                    }
+                }
+            }
+        }
 };
 
 int main() {
@@ -318,12 +352,13 @@ int main() {
         {19, 20, 21, 0, 0}
     };
 
-    Node node0(init_state);
+    Node* node0 = new Node(init_state);
 
-    node0.show_state();
-    node0.expend_nodes();
-    node0.show_state();
-    node0.show_children_state();
+    node0->show_state();
+    visited_states.insert(node0->state_str);
+    node0->expend_nodes();
+    node0->show_moves();
+    node0->show_children_state();
 
     return 0;
 }
