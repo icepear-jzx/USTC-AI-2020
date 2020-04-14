@@ -20,6 +20,8 @@ int goal_state[5][5] = {
     {19, 20, 21, 0, 0}
 };
 
+int count = 0;
+
 int goal_pos_i[22] = {4, 0, 0, 0, 0, 0, 2, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4};
 int goal_pos_j[22] = {4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2};
 
@@ -413,7 +415,6 @@ class Node {
                                     h_score += 3*(dist-2) + 2;
                                 }
                             }
-                            
                         }
                     }
                 }
@@ -440,6 +441,7 @@ Node* astar_search(int init_state[5][5]) {
     Node* node0 = new Node(init_state, NULL);
     Node* node;
     edge_nodes.push(node0);
+    count += 1;
     while (!edge_nodes.empty()) {
         node = edge_nodes.top();
         edge_nodes.pop();
@@ -451,6 +453,7 @@ Node* astar_search(int init_state[5][5]) {
             int n = node->children.size();
             for (int i=0; i < n; i++) {
                 edge_nodes.push(node->children[i]);
+                count += 1;
             }
         }
     }
@@ -484,6 +487,7 @@ int main() {
 
     Node* node = astar_search(init_state);
 
+    cout << count << endl;
     cout << node->f_score << endl;
 
     // while (node) {
