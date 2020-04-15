@@ -2,6 +2,7 @@
 #include <cstring>
 #include <cassert>
 #include <cmath>
+#include <climits>
 #include <vector>
 #include <unordered_set>
 #include <queue>
@@ -48,6 +49,13 @@ class Node {
                 }
             }
             update();
+        }
+
+        ~Node() {
+            int n = children.size();
+            for (int i=0; i < n; i++) {
+                delete children[i];
+            }
         }
 
         void show_state() {
@@ -440,12 +448,13 @@ Node* astar_search(int init_state[5][5]) {
     priority_queue<Node *, vector<Node *>, CompareNode > edge_nodes;
     Node* node0 = new Node(init_state, NULL);
     Node* node;
+    count = 0;
     edge_nodes.push(node0);
     count += 1;
     while (!edge_nodes.empty()) {
         node = edge_nodes.top();
         edge_nodes.pop();
-        cout << node->g_score << ' ' << node->h_score << ' ' << node->f_score << endl;
+        // cout << node->g_score << ' ' << node->h_score << ' ' << node->f_score << endl;
         if (node->is_goal()) {
             break;
         } else {
@@ -458,6 +467,43 @@ Node* astar_search(int init_state[5][5]) {
         }
     }
     return node;
+}
+
+Node* idastar_search(int init_state[5][5]) {
+    int f_limit = 0;
+    Node* node;
+    Node* node0 = new Node(init_state, NULL);
+    count = 0;
+    f_limit = node0->f_score;
+    while (true) {
+        int next_f_limit = INT_MAX;
+        priority_queue<Node *, vector<Node *>, CompareNode > edge_nodes;
+        edge_nodes.push(node0);
+        count += 1;
+        while (!edge_nodes.empty()) {
+            node = edge_nodes.top();
+            edge_nodes.pop();
+            // cout << node->g_score << ' ' << node->h_score << ' ' << node->f_score << endl;
+            if (node->f_score > f_limit) {
+                next_f_limit = (next_f_limit > node->f_score)? node->f_score : next_f_limit;
+            } else {
+                if (node->is_goal()) {
+                    return node;
+                } else {
+                    node->expend_nodes();
+                    int n = node->children.size();
+                    for (int i=0; i < n; i++) {
+                        edge_nodes.push(node->children[i]);
+                        count += 1;
+                    }
+                }
+            }
+        }
+        f_limit = next_f_limit;
+        delete node0;
+        node0 = new Node(init_state, NULL);
+    }
+    return NULL;
 }
 
 int main() {
@@ -485,10 +531,19 @@ int main() {
     //     {19, 20, 17, 21, 0}
     // };
 
-    Node* node = astar_search(init_state);
-
+    Node* node;
+    
+    visited_states.clear();
+    node = astar_search(init_state);
     cout << count << endl;
     cout << node->f_score << endl;
+    delete node;
+
+    visited_states.clear();
+    node = idastar_search(init_state);
+    cout << count << endl;
+    cout << node->f_score << endl;
+    delete node;
 
     // while (node) {
     //     node->show_state();
