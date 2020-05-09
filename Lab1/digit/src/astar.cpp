@@ -540,7 +540,7 @@ void FPrint(FILE *fout, Node* node) {
         d = moves_d.top();
         moves_d.pop();
         if(moves_n.empty())
-            fprintf(fout, "(%d,%c)", n, direct_map[d]);
+            fprintf(fout, "(%d,%c)\n", n, direct_map[d]);
         else
             fprintf(fout, "(%d,%c); ", n, direct_map[d]);
     }
