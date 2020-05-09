@@ -574,7 +574,7 @@ int main() {
 
     Node* node;
     visited_states.clear();
-    node = astar_search(init_state);
+    node = idastar_search(init_state);
     cout << count << endl;
     cout << node->f_score << endl;
     FPrint(fout, node);
