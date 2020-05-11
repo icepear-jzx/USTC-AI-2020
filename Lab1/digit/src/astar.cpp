@@ -30,8 +30,8 @@ int goal_pos_j[22] = {4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 2, 3, 4, 0, 1, 2, 3, 4, 0
 
 class Node {
     public:
-        int state[5][5];
-        string state_str = "";
+        int (*state)[5] = NULL;
+        string* state_str = NULL;
         int pos_i_0s[2] = {-1, -1};
         int pos_j_0s[2] = {-1, -1};
         Node* parent = NULL;
@@ -46,6 +46,8 @@ class Node {
         int h_score = 0;
 
         Node(int cur_state[5][5], Node* cur) {
+            state = (int(*)[5])malloc(sizeof(int)*5*5);
+            state_str = new string();
             parent = cur;
             for (int i=0; i < 5; i++) {
                 for (int j=0; j < 5; j++) {
@@ -59,6 +61,18 @@ class Node {
             int n = children.size();
             for (int i=0; i < n; i++) {
                 delete children[i];
+            }
+            free_attr();
+        }
+
+        void free_attr() {
+            if (state) {
+                free(state);
+                state = NULL;
+            }
+            if (state_str) {
+                delete state_str;
+                state_str = NULL;
             }
         }
 
@@ -327,10 +341,10 @@ class Node {
                 direction direct = moves_d[i];
                 Node* new_node = new Node(state, this);
                 new_node->move(pos_i, pos_j, direct);
-                if (visited_states.find(new_node->state_str) == visited_states.end() ||
-                        visited_states[new_node->state_str] > new_node->f_score) {
+                if (visited_states.find(*(new_node->state_str)) == visited_states.end() ||
+                        visited_states[*(new_node->state_str)] > new_node->f_score) {
                     children.push_back(new_node);
-                    visited_states[new_node->state_str] = new_node->f_score;
+                    visited_states[*(new_node->state_str)] = new_node->f_score;
                 } else {
                     delete new_node;
                 }
@@ -364,11 +378,11 @@ class Node {
         }
 
         void update_state_str() {
-            state_str = "";
+            *state_str = "";
             for (int i=0; i < 5; i++) {
                 for (int j=0; j < 5; j++) {
-                    state_str += to_string(state[i][j]);
-                    state_str += ' ';
+                    *state_str += to_string(state[i][j]);
+                    *state_str += ' ';
                 }
             }
         }
@@ -457,6 +471,7 @@ Node* astar_search(int init_state[5][5]) {
     Node* node;
     cnt = 0;
     edge_nodes.push(node0);
+    visited_states[*(node0->state_str)] = node0->f_score;
     cnt += 1;
     while (!edge_nodes.empty()) {
         node = edge_nodes.top();
@@ -464,7 +479,7 @@ Node* astar_search(int init_state[5][5]) {
         // cout << node->g_score << ' ' << node->h_score << ' ' << node->f_score << endl;
         if (node->is_goal()) {
             break;
-        } else {
+        } else if (visited_states[*(node->state_str)] == node->f_score) {
             node->expend_nodes();
             int n = node->children.size();
             for (int i=0; i < n; i++) {
@@ -472,6 +487,7 @@ Node* astar_search(int init_state[5][5]) {
                 cnt += 1;
             }
         }
+        node->free_attr();
     }
     return node;
 }
@@ -487,6 +503,7 @@ Node* idastar_search(int init_state[5][5]) {
         visited_states.clear();
         priority_queue<Node *, vector<Node *>, CompareNode > edge_nodes;
         edge_nodes.push(node0);
+        visited_states[*(node0->state_str)] = node0->f_score;
         cnt += 1;
         cout << "f_limit: " << f_limit << endl;
         while (!edge_nodes.empty()) {
@@ -498,10 +515,8 @@ Node* idastar_search(int init_state[5][5]) {
             } else {
                 if (node->is_goal()) {
                     return node;
-                } else {
-                    if (node->moves_i.size() == 0) {
-                        node->expend_nodes();
-                    }
+                } else if (visited_states[*(node->state_str)] == node->f_score){
+                    node->expend_nodes();
                     int n = node->children.size();
                     for (int i=0; i < n; i++) {
                         edge_nodes.push(node->children[i]);
@@ -509,10 +524,11 @@ Node* idastar_search(int init_state[5][5]) {
                     }
                 }
             }
+            node->free_attr();
         }
         f_limit = next_f_limit;
-        // delete node0;
-        // node0 = new Node(init_state, NULL);
+        delete node0;
+        node0 = new Node(init_state, NULL);
     }
     return NULL;
 }
@@ -529,7 +545,7 @@ void input_state(int init_state[5][5], FILE *fin) {
     return;
 }
 
-void print_path(FILE *fout, Node* node) {
+Node* print_path(FILE *fout, Node* node) {
     stack<int> moves_n;
     stack<direction> moves_d;
     while(node->parent) {
@@ -550,7 +566,7 @@ void print_path(FILE *fout, Node* node) {
         else
             fprintf(fout, "(%d,%c); ", n, direct_map[d]);
     }
-    return;
+    return node;
 }
 
 int main() {
@@ -582,7 +598,7 @@ int main() {
     node = astar_search(init_state);
     cout << cnt << endl;
     cout << node->f_score << endl;
-    print_path(fout, node);
+    node = print_path(fout, node);
     delete node;
     fclose(fin);
     fclose(fout);
