@@ -327,7 +327,13 @@ class Node {
                 direction direct = moves_d[i];
                 Node* new_node = new Node(state, this);
                 new_node->move(pos_i, pos_j, direct);
-                children.push_back(new_node);
+                if (visited_states.find(new_node->state_str) == visited_states.end() ||
+                        visited_states[new_node->state_str] > new_node->f_score) {
+                    children.push_back(new_node);
+                    visited_states[new_node->state_str] = new_node->f_score;
+                } else {
+                    delete new_node;
+                }
             }
         }
 
@@ -373,7 +379,7 @@ class Node {
             } else {
                 g_score = 0;
             }
-            h_score = h1();
+            h_score = h2();
             f_score = g_score + h_score;
             // cout << g_score << ' ' << h_score << ' ' << f_score << endl;
         }
@@ -462,13 +468,8 @@ Node* astar_search(int init_state[5][5]) {
             node->expend_nodes();
             int n = node->children.size();
             for (int i=0; i < n; i++) {
-                Node *child = node->children[i];
-                if (visited_states.find(child->state_str) == visited_states.end() ||
-                        visited_states[child->state_str] > child->f_score) {
-                    visited_states[child->state_str] = child->f_score;
-                    edge_nodes.push(child);
-                    cnt += 1;
-                }
+                edge_nodes.push(node->children[i]);
+                cnt += 1;
             }
         }
     }
@@ -498,18 +499,13 @@ Node* idastar_search(int init_state[5][5]) {
                 if (node->is_goal()) {
                     return node;
                 } else {
-                    if (node->children.size() == 0) {
+                    if (node->moves_i.size() == 0) {
                         node->expend_nodes();
                     }
                     int n = node->children.size();
                     for (int i=0; i < n; i++) {
-                        Node *child = node->children[i];
-                        if (visited_states.find(child->state_str) == visited_states.end() ||
-                                visited_states[child->state_str] > child->f_score) {
-                            visited_states[child->state_str] = child->f_score;
-                            edge_nodes.push(child);
-                            cnt += 1;
-                        }
+                        edge_nodes.push(node->children[i]);
+                        cnt += 1;
                     }
                 }
             }
