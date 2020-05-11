@@ -1,10 +1,11 @@
+#include <cstdlib>
 #include <iostream>
 #include <cstring>
 #include <cassert>
 #include <cmath>
 #include <climits>
 #include <vector>
-#include <unordered_set>
+#include <unordered_map>
 #include <queue>
 #include <stack>
  
@@ -12,7 +13,7 @@ using namespace std;
 
 enum direction {UP, RIGHT, DOWN, LEFT};
 
-unordered_set<string> visited_states;
+unordered_map<string, int> visited_states;
 
 int goal_state[5][5] = {
     {1, 2, 3, 4, 5},
@@ -38,7 +39,7 @@ class Node {
         vector<int> moves_i;
         vector<int> moves_j;
         vector<direction> moves_d;
-        int from_i, from_j;
+        int from_n;
         direction from_d;
         int f_score = 0;
         int g_score = 0;
@@ -163,8 +164,7 @@ class Node {
                     }
                 }
             }
-            from_i = pos_i;
-            from_j = pos_j;
+            from_n = parent->state[pos_i][pos_j];
             from_d = direct;
             update();
         }
@@ -327,12 +327,7 @@ class Node {
                 direction direct = moves_d[i];
                 Node* new_node = new Node(state, this);
                 new_node->move(pos_i, pos_j, direct);
-                if (visited_states.find(new_node->state_str) != visited_states.end()){
-                    delete new_node;
-                } else {
-                    children.push_back(new_node);
-                    visited_states.insert(new_node->state_str);
-                }
+                children.push_back(new_node);
             }
         }
 
@@ -450,6 +445,7 @@ struct CompareNode : public std::binary_function<Node*, Node*, bool>
 };
 
 Node* astar_search(int init_state[5][5]) {
+    visited_states.clear();
     priority_queue<Node *, vector<Node *>, CompareNode > edge_nodes;
     Node* node0 = new Node(init_state, NULL);
     Node* node;
@@ -466,8 +462,13 @@ Node* astar_search(int init_state[5][5]) {
             node->expend_nodes();
             int n = node->children.size();
             for (int i=0; i < n; i++) {
-                edge_nodes.push(node->children[i]);
-                count += 1;
+                Node *child = node->children[i];
+                if (visited_states.find(child->state_str) == visited_states.end() ||
+                        visited_states[child->state_str] > child->f_score) {
+                    visited_states[child->state_str] = child->f_score;
+                    edge_nodes.push(child);
+                    count += 1;
+                }
             }
         }
     }
@@ -482,9 +483,11 @@ Node* idastar_search(int init_state[5][5]) {
     f_limit = node0->f_score;
     while (true) {
         int next_f_limit = INT_MAX;
+        visited_states.clear();
         priority_queue<Node *, vector<Node *>, CompareNode > edge_nodes;
         edge_nodes.push(node0);
         count += 1;
+        cout << f_limit << endl;
         while (!edge_nodes.empty()) {
             node = edge_nodes.top();
             edge_nodes.pop();
@@ -495,23 +498,30 @@ Node* idastar_search(int init_state[5][5]) {
                 if (node->is_goal()) {
                     return node;
                 } else {
-                    node->expend_nodes();
+                    if (node->children.size() == 0) {
+                        node->expend_nodes();
+                    }
                     int n = node->children.size();
                     for (int i=0; i < n; i++) {
-                        edge_nodes.push(node->children[i]);
-                        count += 1;
+                        Node *child = node->children[i];
+                        if (visited_states.find(child->state_str) == visited_states.end() ||
+                                visited_states[child->state_str] > child->f_score) {
+                            visited_states[child->state_str] = child->f_score;
+                            edge_nodes.push(child);
+                            count += 1;
+                        }
                     }
                 }
             }
         }
         f_limit = next_f_limit;
-        delete node0;
-        node0 = new Node(init_state, NULL);
+        // delete node0;
+        // node0 = new Node(init_state, NULL);
     }
     return NULL;
 }
 
-void GetInput(int init_state[5][5], FILE *fin) {
+void input_state(int init_state[5][5], FILE *fin) {
     for (int i = 0; i < 5; i++) {
         for (int j = 0; j < 5; j++) {
             if(j == 4)
@@ -523,11 +533,11 @@ void GetInput(int init_state[5][5], FILE *fin) {
     return;
 }
 
-void FPrint(FILE *fout, Node* node) {
+void print_path(FILE *fout, Node* node) {
     stack<int> moves_n;
     stack<direction> moves_d;
     while(node->parent) {
-        moves_n.push(node->parent->state[node->from_i][node->from_j]);
+        moves_n.push(node->from_n);
         moves_d.push(node->from_d);
         node = node->parent;
     }
@@ -570,14 +580,13 @@ int main() {
         return -1;
     }
 
-    GetInput(init_state, fin);
+    input_state(init_state, fin);
 
     Node* node;
-    visited_states.clear();
     node = idastar_search(init_state);
     cout << count << endl;
     cout << node->f_score << endl;
-    FPrint(fout, node);
+    print_path(fout, node);
     delete node;
     fclose(fin);
     fclose(fout);
