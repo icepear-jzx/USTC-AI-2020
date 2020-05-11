@@ -487,7 +487,7 @@ Node* idastar_search(int init_state[5][5]) {
         priority_queue<Node *, vector<Node *>, CompareNode > edge_nodes;
         edge_nodes.push(node0);
         count += 1;
-        cout << f_limit << endl;
+        cout << "f_limit: " << f_limit << endl;
         while (!edge_nodes.empty()) {
             node = edge_nodes.top();
             edge_nodes.pop();

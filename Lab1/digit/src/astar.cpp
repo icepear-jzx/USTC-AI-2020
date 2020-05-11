@@ -373,7 +373,7 @@ class Node {
             } else {
                 g_score = 0;
             }
-            h_score = h2();
+            h_score = h1();
             f_score = g_score + h_score;
             // cout << g_score << ' ' << h_score << ' ' << f_score << endl;
         }
@@ -487,7 +487,7 @@ Node* idastar_search(int init_state[5][5]) {
         priority_queue<Node *, vector<Node *>, CompareNode > edge_nodes;
         edge_nodes.push(node0);
         count += 1;
-        cout << f_limit << endl;
+        cout << "f_limit: " << f_limit << endl;
         while (!edge_nodes.empty()) {
             node = edge_nodes.top();
             edge_nodes.pop();
