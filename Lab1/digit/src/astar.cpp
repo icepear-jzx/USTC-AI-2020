@@ -23,7 +23,7 @@ int goal_state[5][5] = {
     {19, 20, 21, 0, 0}
 };
 
-int count = 0;
+int cnt = 0;
 
 int goal_pos_i[22] = {4, 0, 0, 0, 0, 0, 2, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4};
 int goal_pos_j[22] = {4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2};
@@ -449,9 +449,9 @@ Node* astar_search(int init_state[5][5]) {
     priority_queue<Node *, vector<Node *>, CompareNode > edge_nodes;
     Node* node0 = new Node(init_state, NULL);
     Node* node;
-    count = 0;
+    cnt = 0;
     edge_nodes.push(node0);
-    count += 1;
+    cnt += 1;
     while (!edge_nodes.empty()) {
         node = edge_nodes.top();
         edge_nodes.pop();
@@ -467,7 +467,7 @@ Node* astar_search(int init_state[5][5]) {
                         visited_states[child->state_str] > child->f_score) {
                     visited_states[child->state_str] = child->f_score;
                     edge_nodes.push(child);
-                    count += 1;
+                    cnt += 1;
                 }
             }
         }
@@ -479,14 +479,14 @@ Node* idastar_search(int init_state[5][5]) {
     int f_limit = 0;
     Node* node;
     Node* node0 = new Node(init_state, NULL);
-    count = 0;
+    cnt = 0;
     f_limit = node0->f_score;
     while (true) {
         int next_f_limit = INT_MAX;
         visited_states.clear();
         priority_queue<Node *, vector<Node *>, CompareNode > edge_nodes;
         edge_nodes.push(node0);
-        count += 1;
+        cnt += 1;
         cout << "f_limit: " << f_limit << endl;
         while (!edge_nodes.empty()) {
             node = edge_nodes.top();
@@ -508,7 +508,7 @@ Node* idastar_search(int init_state[5][5]) {
                                 visited_states[child->state_str] > child->f_score) {
                             visited_states[child->state_str] = child->f_score;
                             edge_nodes.push(child);
-                            count += 1;
+                            cnt += 1;
                         }
                     }
                 }
@@ -584,7 +584,7 @@ int main() {
 
     Node* node;
     node = astar_search(init_state);
-    cout << count << endl;
+    cout << cnt << endl;
     cout << node->f_score << endl;
     print_path(fout, node);
     delete node;
