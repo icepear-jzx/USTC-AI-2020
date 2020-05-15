@@ -199,7 +199,7 @@ class CSP {
         void update_choice() {
             for (int i = 0; i < 9; i++) {
                 for (int j = 0; j < 9; j++) {
-                    choice_cnt[i][j] = 1;
+                    choice_cnt[i][j] = 9;
                     for (int value = 0; value < 10; value++) {
                         choice[i][j][value] = 1;
                     }
