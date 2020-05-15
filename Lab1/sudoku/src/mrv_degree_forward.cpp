@@ -2,21 +2,50 @@
 #include <iostream>
 #include <cstring>
 #include <ctime>
+#include <queue>
 
 using namespace std;
+
+class Node {
+    public:
+        int row, col;
+        int choice_cnt;
+        int degree;
+
+        Node(int in_row, int in_col, int in_choice_cnt, int in_degree) {
+            row = in_row;
+            col = in_col;
+            choice_cnt = in_choice_cnt;
+            degree = in_degree;
+        }
+};
+
+struct CompareNode : public std::binary_function<Node*, Node*, bool>                                                                                     
+{
+    bool operator()(const Node* lhs, const Node* rhs) const
+    {
+        if (lhs->choice_cnt == rhs->choice_cnt) {
+            return lhs->degree < rhs->degree;
+        } else {
+            return lhs->choice_cnt > rhs->choice_cnt;
+        }
+    }
+};
 
 class CSP {
     public:
         enum STATE {GOT, FINISHED, ERROR};
         int state[9][9];
-        // int degree[9][9];
+        int degree[9][9];
         int choice[9][9][10];
         int choice_cnt[9][9];
         int cnt;
+        priority_queue<Node *, vector<Node *>, CompareNode > unassigned;
 
         CSP(FILE *fin) {
             input_state(fin);
-            update_choice();
+            update_choice_degree();
+            init_unassigned();
             cnt = 0;
         }
 
@@ -27,15 +56,17 @@ class CSP {
             if (s == GOT) {
                 for (int value = 1; value < 10; value++) {
                     if (choice[row][col][value] == 1) {
-                        set_value(row, col, value);
-                        if (backtrack())
-                            return true;
+                        if (set_value(row, col, value)) {
+                            if (backtrack())
+                                return true;
+                        }
                         clear_value(row, col, value);
                     }
                 }
             } else if (s == FINISHED) {
                 return true;
             }
+            unassigned.push(new Node(row, col, choice_cnt[row][col], degree[row][col]));
             return false;
         }
 
@@ -57,6 +88,15 @@ class CSP {
             }
         }
 
+        void show_degree() {
+            for (int i = 0; i < 9; i++){
+                for (int j = 0; j < 9; j++){
+                    if (j == 8) printf("%d\n", degree[i][j]);
+                    else printf("%d ", degree[i][j]);
+                }
+            }
+        }
+
         void print_result(FILE *fout) {
             for (int i = 0; i < 9; i++){
                 for (int j = 0; j < 9; j++){
@@ -68,32 +108,40 @@ class CSP {
 
     private:
         STATE select_unassigned(int &row, int &col) {
-            for (int i = 0; i < 9; i++){
-                for (int j = 0; j < 9; j++){
-                    if (state[i][j] == 0) {
-                        if (choice_cnt[i][j] != 0) {
-                            row = i;
-                            col = j;
-                            return GOT;
-                        } else {
-                            return ERROR;
-                        }
-                    }
+            if (unassigned.empty())
+                return FINISHED;
+            
+            while(true) {
+                Node *node = unassigned.top();
+                unassigned.pop();
+                row = node->row;
+                col = node->col;
+                if (node->choice_cnt == choice_cnt[row][col] && node->degree == degree[row][col]) {
+                    if (choice_cnt[row][col] != 0)
+                        return GOT;
+                    else
+                        return ERROR;
+                } else {
+                    delete node;
+                    node = new Node(row, col, choice_cnt[row][col], degree[row][col]);
+                    unassigned.push(node);
                 }
             }
-            return FINISHED;
         }
 
-        void set_value(int row, int col, int value) {
+        bool set_value(int row, int col, int value) {
+            bool no_error = true;
             // update state (before updating choice)
             state[row][col] = value;
-            // update choice & choice_cnt
+            // update choice & choice_cnt & degree
             // row:
             for (int j = 0; j < 9; j++) {
                 if (state[row][j] == 0) {
                     if (choice[row][j][value] == 1)
                         choice_cnt[row][j] -= 1;
                     choice[row][j][value] -= 1;
+                    degree[row][j] -= 1;
+                    if (choice_cnt[row][j] == 0) no_error = false;
                 }
             }
             // col:
@@ -102,6 +150,8 @@ class CSP {
                     if (choice[i][col][value] == 1)
                         choice_cnt[i][col] -= 1;
                     choice[i][col][value] -= 1;
+                    degree[i][col] -= 1;
+                    if (choice_cnt[i][col] == 0) no_error = false;
                 }
             }
             // box:
@@ -113,6 +163,8 @@ class CSP {
                         if (choice[row_base+i][col_base+j][value] == 1)
                             choice_cnt[row_base+i][col_base+j] -= 1;
                         choice[row_base+i][col_base+j][value] -= 1;
+                        degree[row_base+i][col_base+j] -= 1;
+                        if (choice_cnt[row_base+i][col_base+j] == 0) no_error = false;
                     }
                 }
             }
@@ -123,6 +175,8 @@ class CSP {
                         if (choice[i][i][value] == 1)
                             choice_cnt[i][i] -= 1;
                         choice[i][i][value] -= 1;
+                        degree[i][i] -= 1;
+                        if (choice_cnt[i][i] == 0) no_error = false;
                     }
                 }
             }
@@ -132,9 +186,12 @@ class CSP {
                         if (choice[i][8-i][value] == 1)
                             choice_cnt[i][8-i] -= 1;
                         choice[i][8-i][value] -= 1;
+                        degree[i][8-i] -= 1;
+                        if (choice_cnt[i][8-i] == 0) no_error = false;
                     }
                 }
             }
+            return no_error;
         }
 
         void clear_value(int row, int col, int value) {
@@ -142,6 +199,7 @@ class CSP {
             // row:
             for (int j = 0; j < 9; j++) {
                 if (state[row][j] == 0) {
+                    degree[row][j] += 1;
                     choice[row][j][value] += 1;
                     if (choice[row][j][value] == 1)
                         choice_cnt[row][j] += 1;
@@ -150,6 +208,7 @@ class CSP {
             // col:
             for (int i = 0; i < 9; i++) {
                 if (state[i][col] == 0) {
+                    degree[i][col] += 1;
                     choice[i][col][value] += 1;
                     if (choice[i][col][value] == 1)
                         choice_cnt[i][col] += 1;
@@ -161,6 +220,7 @@ class CSP {
             for (int i = 0; i < 3; i++){
                 for (int j = 0; j < 3; j++){
                     if (state[row_base+i][col_base+j] == 0) {
+                        degree[row_base+i][col_base+j] += 1;
                         choice[row_base+i][col_base+j][value] += 1;
                         if (choice[row_base+i][col_base+j][value] == 1)
                             choice_cnt[row_base+i][col_base+j] += 1;
@@ -171,6 +231,7 @@ class CSP {
             if(row == col){
                 for (int i = 0; i < 9; i++){
                     if (state[i][i] == 0) {
+                        degree[i][i] += 1;
                         choice[i][i][value] += 1;
                         if (choice[i][i][value] == 1)
                             choice_cnt[i][i] += 1;
@@ -180,6 +241,7 @@ class CSP {
             if (row + col == 8) {
                 for (int i = 0; i < 9; i++){
                     if (state[i][8-i] == 0) {
+                        degree[i][8-i] += 1;
                         choice[i][8-i][value] += 1;
                         if (choice[i][8-i][value] == 1)
                             choice_cnt[i][8-i] += 1;
@@ -196,19 +258,35 @@ class CSP {
                     fscanf(fin, "%d", &state[i][j]);
         }
 
-        void update_choice() {
+        void update_choice_degree() {
             for (int i = 0; i < 9; i++) {
                 for (int j = 0; j < 9; j++) {
                     choice_cnt[i][j] = 9;
                     for (int value = 0; value < 10; value++) {
                         choice[i][j][value] = 1;
                     }
+                    degree[i][j] = 20;
+                    if (i == j)
+                        degree[i][j] += 6;
+                    if (i + j == 8)
+                        degree[i][j] += 6;
                 }
             }
             for (int i = 0; i < 9; i++) {
                 for (int j = 0; j < 9; j++) {
                     if (state[i][j] != 0) {
                         set_value(i, j, state[i][j]);
+                    }
+                }
+            }
+        }
+
+        void init_unassigned() {
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
+                    if (state[i][j] == 0) {
+                        Node *node = new Node(i, j, choice_cnt[i][j], degree[i][j]);
+                        unassigned.push(node);
                     }
                 }
             }
