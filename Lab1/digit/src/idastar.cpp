@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <queue>
 #include <stack>
+#include <ctime>
  
 using namespace std;
 
@@ -28,10 +29,13 @@ int cnt = 0;
 int goal_pos_i[22] = {4, 0, 0, 0, 0, 0, 2, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4};
 int goal_pos_j[22] = {4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2};
 
+char num2char[22] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
+                        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'};
+
 class Node {
     public:
-        int (*state)[5] = NULL;
-        string* state_str = NULL;
+        int state[5][5];
+        string state_str = "";
         int pos_i_0s[2] = {-1, -1};
         int pos_j_0s[2] = {-1, -1};
         Node* parent = NULL;
@@ -46,33 +50,17 @@ class Node {
         int h_score = 0;
 
         Node(int cur_state[5][5], Node* cur) {
-            state = (int(*)[5])malloc(sizeof(int)*5*5);
-            state_str = new string();
             parent = cur;
-            for (int i=0; i < 5; i++) {
-                for (int j=0; j < 5; j++) {
-                    state[i][j] = cur_state[i][j];
-                }
+            memcpy(state, cur_state, sizeof(int)*25);
+            if (parent == NULL) {
+                update();
             }
-            update();
         }
 
         ~Node() {
             int n = children.size();
             for (int i=0; i < n; i++) {
                 delete children[i];
-            }
-            free_attr();
-        }
-
-        void free_attr() {
-            if (state) {
-                free(state);
-                state = NULL;
-            }
-            if (state_str) {
-                delete state_str;
-                state_str = NULL;
             }
         }
 
@@ -112,13 +100,9 @@ class Node {
         }
 
         void move(int pos_i, int pos_j, direction direct) {
-            assert(("Can't move 0.", state[pos_i][pos_j] != 0));
             if (state[pos_i][pos_j] == 7) {
-                assert(("Pos should be the center of 7.", 
-                    state[pos_i][pos_j-1] == 7 && state[pos_i+1][pos_j] == 7));
                 switch (direct) {
                     case UP: {
-                        assert(("Can't move.", state[pos_i-1][pos_j] == 0 && state[pos_i-1][pos_j-1] == 0));
                         state[pos_i-1][pos_j] = state[pos_i][pos_j];
                         state[pos_i-1][pos_j-1] = state[pos_i][pos_j];
                         state[pos_i][pos_j-1] = 0;
@@ -126,7 +110,6 @@ class Node {
                         break;
                     }
                     case RIGHT: {
-                        assert(("Can't move.", state[pos_i][pos_j+1] == 0 && state[pos_i+1][pos_j+1] == 0));
                         state[pos_i][pos_j+1] = state[pos_i][pos_j];
                         state[pos_i+1][pos_j+1] = state[pos_i][pos_j];
                         state[pos_i][pos_j-1] = 0;
@@ -134,7 +117,6 @@ class Node {
                         break;
                     }
                     case DOWN: {
-                        assert(("Can't move.", state[pos_i+2][pos_j] == 0 && state[pos_i+1][pos_j-1] == 0));
                         state[pos_i+2][pos_j] = state[pos_i][pos_j];
                         state[pos_i+1][pos_j-1] = state[pos_i][pos_j];
                         state[pos_i][pos_j] = 0;
@@ -142,7 +124,6 @@ class Node {
                         break;
                     }
                     case LEFT: {
-                        assert(("Can't move.", state[pos_i][pos_j-2] == 0 && state[pos_i+1][pos_j-1] == 0));
                         state[pos_i][pos_j-2] = state[pos_i][pos_j];
                         state[pos_i+1][pos_j-1] = state[pos_i][pos_j];
                         state[pos_i][pos_j] = 0;
@@ -153,25 +134,21 @@ class Node {
             } else {
                 switch (direct) {
                     case UP: {
-                        assert(("Can't move.", state[pos_i-1][pos_j] == 0));
                         state[pos_i-1][pos_j] = state[pos_i][pos_j];
                         state[pos_i][pos_j] = 0;
                         break;
                     }
                     case RIGHT: {
-                        assert(("Can't move.", state[pos_i][pos_j+1] == 0));
                         state[pos_i][pos_j+1] = state[pos_i][pos_j];
                         state[pos_i][pos_j] = 0;
                         break;
                     }
                     case DOWN: {
-                        assert(("Can't move.", state[pos_i+1][pos_j] == 0));
                         state[pos_i+1][pos_j] = state[pos_i][pos_j];
                         state[pos_i][pos_j] = 0;
                         break;
                     }
                     case LEFT: {
-                        assert(("Can't move.", state[pos_i][pos_j-1] == 0));
                         state[pos_i][pos_j-1] = state[pos_i][pos_j];
                         state[pos_i][pos_j] = 0;
                         break;
@@ -219,8 +196,6 @@ class Node {
                 return false;
             }
             if (state[pos_i][pos_j] == 7) {
-                assert(("Pos should be the center of 7.", 
-                    state[pos_i][pos_j-1] == 7 && state[pos_i+1][pos_j] == 7));
                 switch (direct) {
                     case UP: {
                         if (pos_i > 0 && pos_j > 0 && state[pos_i-1][pos_j] == 0 &&
@@ -341,10 +316,10 @@ class Node {
                 direction direct = moves_d[i];
                 Node* new_node = new Node(state, this);
                 new_node->move(pos_i, pos_j, direct);
-                if (visited_states.find(*(new_node->state_str)) == visited_states.end() ||
-                        visited_states[*(new_node->state_str)] > new_node->f_score) {
+                if (visited_states.find(new_node->state_str) == visited_states.end() ||
+                        visited_states[new_node->state_str] > new_node->f_score) {
                     children.push_back(new_node);
-                    visited_states[*(new_node->state_str)] = new_node->f_score;
+                    visited_states[new_node->state_str] = new_node->f_score;
                 } else {
                     delete new_node;
                 }
@@ -378,11 +353,10 @@ class Node {
         }
 
         void update_state_str() {
-            *state_str = "";
+            state_str = "";
             for (int i=0; i < 5; i++) {
                 for (int j=0; j < 5; j++) {
-                    *state_str += to_string(state[i][j]);
-                    *state_str += ' ';
+                    state_str += num2char[state[i][j]];
                 }
             }
         }
@@ -449,18 +423,41 @@ class Node {
             }
             return h_score;
         }
+
+        int h3() {
+            int h_score = 0;
+            for (int i=0; i < 5; i++) {
+                for (int j=0; j < 5; j++) {
+                    if (state[i][j] == 0) {
+                        continue;
+                    } else {
+                        int center_i, center_j;
+                        center_of(i, j, center_i, center_j);
+                        if (i == center_i && j == center_j) {
+                            int dist = abs(i - goal_pos_i[state[i][j]]) + 
+                                abs(j - goal_pos_j[state[i][j]]);
+                            if (state[center_i][center_j] == 7)
+                                h_score += 3 * dist;
+                            else
+                                h_score += dist;
+                        }
+                    }
+                }
+            }
+            return h_score;
+        }
 };
 
 struct CompareNode : public std::binary_function<Node*, Node*, bool>                                                                                     
 {
     bool operator()(const Node* lhs, const Node* rhs) const
     {
-        // if (lhs->f_score == rhs->f_score) {
-        //     return lhs->g_score < rhs->g_score;
-        // } else {
-        //     return lhs->f_score > rhs->f_score;
-        // }
-        return lhs->f_score > rhs->f_score;
+        if (lhs->f_score == rhs->f_score) {
+            return lhs->g_score < rhs->g_score;
+        } else {
+            return lhs->f_score > rhs->f_score;
+        }
+        // return lhs->f_score > rhs->f_score;
     }
 };
 
@@ -471,7 +468,7 @@ Node* astar_search(int init_state[5][5]) {
     Node* node;
     cnt = 0;
     edge_nodes.push(node0);
-    visited_states[*(node0->state_str)] = node0->f_score;
+    visited_states[node0->state_str] = node0->f_score;
     cnt += 1;
     while (!edge_nodes.empty()) {
         node = edge_nodes.top();
@@ -479,7 +476,7 @@ Node* astar_search(int init_state[5][5]) {
         // cout << node->g_score << ' ' << node->h_score << ' ' << node->f_score << endl;
         if (node->is_goal()) {
             break;
-        } else if (visited_states[*(node->state_str)] == node->f_score) {
+        } else if (visited_states[node->state_str] == node->f_score) {
             node->expend_nodes();
             int n = node->children.size();
             for (int i=0; i < n; i++) {
@@ -487,7 +484,6 @@ Node* astar_search(int init_state[5][5]) {
                 cnt += 1;
             }
         }
-        node->free_attr();
     }
     return node;
 }
@@ -503,7 +499,7 @@ Node* idastar_search(int init_state[5][5]) {
         visited_states.clear();
         priority_queue<Node *, vector<Node *>, CompareNode > edge_nodes;
         edge_nodes.push(node0);
-        visited_states[*(node0->state_str)] = node0->f_score;
+        visited_states[node0->state_str] = node0->f_score;
         cnt += 1;
         cout << "f_limit: " << f_limit << endl;
         while (!edge_nodes.empty()) {
@@ -515,7 +511,7 @@ Node* idastar_search(int init_state[5][5]) {
             } else {
                 if (node->is_goal()) {
                     return node;
-                } else if (visited_states[*(node->state_str)] == node->f_score){
+                } else if (visited_states[node->state_str] == node->f_score){
                     node->expend_nodes();
                     int n = node->children.size();
                     for (int i=0; i < n; i++) {
@@ -524,7 +520,6 @@ Node* idastar_search(int init_state[5][5]) {
                     }
                 }
             }
-            node->free_attr();
         }
         f_limit = next_f_limit;
         delete node0;
@@ -579,28 +574,22 @@ int main() {
     strcat(input_dir, filename);
     strcat(output_dir, filename);
 
-    FILE *fin, *fout;
-    fin = fopen(input_dir, "r");
-    if (fin == NULL) {
-        printf("Error: cannot open %s!\n", input_dir);
-        return -1;
-    }
-    fout = fopen(output_dir, "w");
-    if (fout == NULL)
-    {
-        printf("Error: cannot open %s!\n", output_dir);
-        return -1;
-    }
+    FILE *fin = fopen(input_dir, "r");
+    FILE *fout = fopen(output_dir, "w");
 
     input_state(init_state, fin);
+    fclose(fin);
+
+    clock_t start = clock();
 
     Node* node;
     node = idastar_search(init_state);
-    cout << cnt << endl;
-    cout << node->f_score << endl;
-    node = print_path(fout, node);
-    delete node;
-    fclose(fin);
+    cout << "Total nodes: " << cnt << endl;
+    cout << "Minimal steps: " << node->g_score << endl;
+
+    cout << "Total time: " << (clock() - start) / (float)CLOCKS_PER_SEC << endl;
+
+    print_path(fout, node);
     fclose(fout);
 
     return 0;
