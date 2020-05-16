@@ -367,8 +367,8 @@ class Node {
             } else {
                 g_score = 0;
             }
-            h_score = h2();
-            f_score = g_score + h_score;
+            h_score = h3();
+            f_score = g_score + 1.2 * h_score;
             // cout << g_score << ' ' << h_score << ' ' << f_score << endl;
         }
 
