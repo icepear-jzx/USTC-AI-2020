@@ -92,6 +92,11 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, choices=['MAT', 'POR'], default='MAT')
     parser.add_argument('--useG', type=bool, default=False)
     parser.add_argument('--k', type=int, default=10)
+    parser.add_argument('--soft', type=int, default=100)
+    parser.add_argument('--epsilon', type=float, default=1e-5)
+    parser.add_argument('--sigma', type=int, default=5)
+    parser.add_argument('--alpha', type=float, default=1e-3)
+    parser.add_argument('--epochs', type=int, default=100)
     args = parser.parse_args()
 
     x, y = load_data(DATA_PATH_MAP[args.dataset], args.model, args.useG)
