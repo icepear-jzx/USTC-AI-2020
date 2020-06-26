@@ -4,3 +4,4 @@ idastar
 backtrack
 mrv_degree_forward
 .DS_Store
+__pycache__
