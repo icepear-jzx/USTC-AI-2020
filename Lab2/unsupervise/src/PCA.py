@@ -3,21 +3,17 @@ import numpy as np
 
 class PCA:
     
-    def __init__(self, threshold=0.99):
-        self.threshold = threshold
+    def __init__(self, args):
+        self.threshold = args.threshold
     
-    def fit(self, X):
-        X_T = X.T
-        mean_X = X_T - np.mean(X_T, axis=1, keepdims=True)
-        cov_X = np.dot(mean_X, mean_X.T)
-        eig_val, eig_vec = np.linalg.eig(cov_X)
-        val_index = np.argsort(eig_val)[::-1]
-        total_val = np.sum(eig_val)
-        temp = 0
-        for i in range(len(eig_vec)):
-            if temp / total_val >= self.threshold:
-                break
-            temp += eig_val[val_index[i]]
-        vec_m = eig_vec[val_index[:i]]
-        vec_m = vec_m.T
-        return np.dot(X, vec_m)
+    def fit(self, x):
+        x = x - x.mean(axis=0)
+        cov = np.cov(x.T) / x.shape[0]
+        w, v = np.linalg.eig(cov)
+        idx = np.argsort(w)[::-1]
+        w = w[idx]
+        v = v[:, idx]
+        i = 0
+        while np.sum(w[:i]) / np.sum(w) < self.threshold and i < len(w):
+            i += 1
+        return np.dot(x, v[:, :i])

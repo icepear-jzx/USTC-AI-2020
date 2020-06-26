@@ -3,69 +3,47 @@ import numpy as np
 
 class KMeans():
 
-    def __init__(self, k=3):
-        self.k = k
+    def __init__(self, args):
+        self.k = args.k
 
-    def _distance(self, x, y):
-        return np.sqrt(np.sum((x -  y) ** 2))
-    
-    def _evaluate(self, x, center, cluster):
-        nearest = {}
-        for i in range(len(center)):
-            min_dist = 10000000
-            for j in range(len(center)):
-                if j == i:
-                    continue
-                dist = self._distance(center[i], center[j])
-                if dist < min_dist:
-                    nearest[i] = j
-                    min_dist = dist
-        # 计算轮廓系数
-        s = []
-        for i in range(len(cluster)):
-            b = []
-            a = []
-            for j in range(len(cluster)):
-                if j == i:
-                    continue
-                if cluster[i] == cluster[j]:
-                    a.append(self._distance(x[i], x[j]))
-                elif cluster[j] == nearest[cluster[i]]:
-                    b.append(self._distance(x[i], x[j]))
-            mean_b = np.mean(np.array(b))
-            mean_a = np.mean(np.array(a))
-            s.append((mean_b - mean_a) / max(mean_b, mean_a))
-        s = np.mean(np.array(s))
-        print('s: ', s)
-        return s
-
-    def fit(self, X):
-        # 随机选取K个中心
-        center = np.zeros((self.k, X.shape[1]))
-        for i in range(self.k):
-            index = np.random.randint(X.shape[0])
-            center[i] = X[index]
-        clusterChanged = True
-        cluster = np.zeros((X.shape[0]), dtype='int32')
-        while clusterChanged:
-            clusterChanged = False
-            # 聚类
-            for i in range(X.shape[0]):
-                min_dist = 10000000
-                min_index = 0
-                for j in range(self.k):
-                    dist = self._distance(X[i], center[j])
-                    if dist < min_dist:
-                        min_dist = dist
-                        min_index = j
-                if min_index != cluster[i]:
-                    cluster[i] = min_index
-                    clusterChanged = True
-            # 更新中心
-            for j in range(self.k):
-                center[j] = np.mean(X[cluster == j], axis=0)
-        s = self._evaluate(X, center, cluster)
+    def fit(self, x):
+        idx = np.random.choice(len(x), size=self.k, replace=False)
+        centers = x[idx]
+        while True:
+            cluster = self.cluster_center(x, centers)
+            new_centers = self.new_centers(x, cluster)
+            if (centers == new_centers).all():
+                break
+            else:
+                centers = new_centers
+        s = self.silhouette_coef(x, cluster)
         return cluster, s
 
-        
+    def cluster_center(self, points, centers):
+        distances = np.sqrt(((points - centers[:, np.newaxis]) ** 2).sum(axis=2))
+        return np.argmin(distances, axis=0)
+    
+    def new_centers(self, points, cluster):
+        return np.array([points[cluster==k].mean(axis=0) for k in range(self.k)])
+    
+    def silhouette_coef(self, x, cluster):
+        n = cluster.shape[0]
+        A = np.array([self.intra_cluster_distance(x, cluster, i) for i in range(n)])
+        B = np.array([self.nearest_cluster_distance(x, cluster, i) for i in range(n)])
+        return np.mean(np.nan_to_num((B - A) / np.maximum(A, B)))
 
+    def intra_cluster_distance(self, x, cluster, i):
+        idx = np.where(cluster == cluster[i])[0]
+        if len(idx) == 0:
+            return 0
+        a = np.mean([self.euclidean_distance(x[i], x[j]) for j in idx])
+        return a
+
+    def nearest_cluster_distance(self, x, cluster, i):
+        b = np.min([
+                np.mean([self.euclidean_distance(x[i], x[j]) for j in np.where(cluster == c)[0]]) 
+            for c in set(cluster) if not c == cluster[i]])
+        return b
+    
+    def euclidean_distance(self, x1, x2):
+        return np.sqrt(np.sum(np.power(x1 - x2, 2)))
