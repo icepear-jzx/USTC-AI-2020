@@ -46,7 +46,7 @@ def load_data(data_path, model, useG):
     y = np.array(y).reshape(-1, 1)
     x = np.array(x).T
 
-    if not useG:
+    if useG == 'False':
         x = x[:, :-2]
 
     return x, y
@@ -72,9 +72,9 @@ def evaluate(y_true, y_pred):
     for i in range(len(y_true)):
         if y_true[i] == 1 and y_pred[i] == 1:
             TP += 1
-        elif y_true[i] == 1 and y_pred[i] == 0:
+        elif y_true[i] == 1 and y_pred[i] != 1:
             FN += 1
-        elif y_true[i] == 0 and y_pred[i] == 1:
+        elif y_true[i] != 1 and y_pred[i] == 1:
             FP += 1
         else:
             TN += 1
@@ -90,9 +90,9 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, choices=['KNN', 'SVM', 'LR'], default='KNN')
     parser.add_argument('--kernel', type=str, choices=['LINEAR', 'RBF'], default='LINEAR')
     parser.add_argument('--dataset', type=str, choices=['MAT', 'POR'], default='MAT')
-    parser.add_argument('--useG', type=bool, default=False)
+    parser.add_argument('--useG', type=str, default='False', choices=['True', 'False'])
     parser.add_argument('--k', type=int, default=10)
-    parser.add_argument('--soft', type=int, default=100)
+    parser.add_argument('--soft', type=int, default=10)
     parser.add_argument('--epsilon', type=float, default=1e-5)
     parser.add_argument('--sigma', type=int, default=5)
     parser.add_argument('--alpha', type=float, default=1e-3)
@@ -103,5 +103,5 @@ if __name__ == '__main__':
     x_train, y_train, x_test, y_test = split_data(x, y)
     model = MODEL_MAP[args.model](args)
     model.fit(x_train, y_train)
-    y_pred = model.predict(x_test) 
+    y_pred = model.predict(x_test)
     print(evaluate(y_test, y_pred))
