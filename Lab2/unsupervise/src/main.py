@@ -74,13 +74,20 @@ if __name__ == '__main__':
 
     if args.usePCA == 'True':
         x = PCA(args).fit(x)
+    print('Dim:', x.shape[1])
 
-    cluster, s = KMeans(args).fit(x)
-    r = evaluate(cluster, y)
-    print('s:', s)
-    print('r:', r)
+    S = []
+    RI = []
+    for _ in range(10):
+        cluster, s = KMeans(args).fit(x)
+        r = evaluate(cluster, y)
+        S.append(s)
+        RI.append(r)
+    print('S:', np.mean(S))
+    print('RI:', np.mean(RI))
 
-    if args.usePCA == 'False':
+    if x.shape[1] > 2:
+        args.threshold = 0.5
         x = PCA(args).fit(x)
     visualize(x, cluster)
 
