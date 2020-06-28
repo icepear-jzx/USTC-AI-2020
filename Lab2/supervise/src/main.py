@@ -99,9 +99,17 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=100)
     args = parser.parse_args()
 
-    x, y = load_data(DATA_PATH_MAP[args.dataset], args.model, args.useG)
-    x_train, y_train, x_test, y_test = split_data(x, y)
-    model = MODEL_MAP[args.model](args)
-    model.fit(x_train, y_train)
-    y_pred = model.predict(x_test)
-    print(evaluate(y_test, y_pred))
+    P = []
+    R = []
+    F = []
+    for _ in range(10):
+        x, y = load_data(DATA_PATH_MAP[args.dataset], args.model, args.useG)
+        x_train, y_train, x_test, y_test = split_data(x, y)
+        model = MODEL_MAP[args.model](args)
+        model.fit(x_train, y_train)
+        y_pred = model.predict(x_test)
+        p, r, f = evaluate(y_test, y_pred)
+        P.append(p)
+        R.append(r)
+        F.append(f)
+    print(np.mean(P), np.mean(R), np.mean(F))
